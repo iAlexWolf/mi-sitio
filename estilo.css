@@ -13,3 +13,36 @@ nav a {
 h1 {
   color: #1f6a54;
 }
+.oculto {
+  display: none;
+}
+.card {
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+input,
+button {
+  padding: 8px;
+  margin: 4px 0;
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
+}
+button {
+  background: #1f6a54;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.msg-ok {
+  color: #1f6a54;
+  font-weight: bold;
+}
+.msg-err {
+  color: #b00020;
+  font-weight: bold;
+}

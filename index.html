@@ -2,15 +2,139 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Mi sitio</title>
+    <title>Portal de Solicitudes</title>
     <link rel="stylesheet" href="estilo.css" />
   </head>
   <body>
     <nav>
-      <a href="index.html">Inicio</a> · <a href="catalogo.html">Catálogo</a> ·
+      <a href="index.html">Inicio</a> | <a href="catalogo.html">Catálogo</a> |
       <a href="acerca.html">Acerca</a>
     </nav>
-    <h1>Mi primer sitio web</h1>
-    <p>Hola, soy TU NOMBRE. Esta es mi página de inicio.</p>
+
+    <h1>Portal de Solicitudes</h1>
+
+    <section id="vista-login" class="card">
+      <h2>Iniciar sesión o crear cuenta</h2>
+      <input type="email" id="email" placeholder="correo@ejemplo.com" />
+      <input
+        type="password"
+        id="pass"
+        placeholder="Contraseña (mín. 6 caracteres)"
+      />
+      <button onclick="entrar()">Iniciar sesión</button>
+      <button onclick="registrar()">Crear cuenta</button>
+      <p id="m1"></p>
+    </section>
+
+    <section id="vista-app" class="card oculto">
+      <p>Conectado como: <strong id="usuario-actual"></strong></p>
+      <button onclick="salir()">Cerrar sesión</button>
+
+      <hr />
+
+      <h2>Nueva solicitud</h2>
+      <input type="text" id="titulo" placeholder="Título de la solicitud" />
+      <input type="number" id="monto" placeholder="Monto" />
+      <button onclick="crearSolicitud()">Guardar solicitud</button>
+      <p id="m2"></p>
+
+      <h2>Solicitudes registradas</h2>
+      <ul id="lista-solicitudes"></ul>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+      const val = (id) => document.getElementById(id).value.trim();
+
+      function msg(id, texto, ok) {
+        const el = document.getElementById(id);
+        el.textContent = texto;
+        el.className = ok ? "msg-ok" : "msg-err";
+      }
+
+      async function registrar() {
+        const { error } = await supabase.auth.signUp({
+          email: val("email"),
+          password: val("pass"),
+        });
+        if (error) return msg("m1", "Error: " + error.message, false);
+        msg("m1", "Cuenta creada. Ya puedes iniciar sesión.", true);
+      }
+
+      async function entrar() {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: val("email"),
+          password: val("pass"),
+        });
+        if (error) return msg("m1", "Credenciales incorrectas", false);
+        msg("m1", "", true);
+        mostrarApp();
+      }
+
+      async function mostrarApp() {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        document.getElementById("vista-login").classList.add("oculto");
+        document.getElementById("vista-app").classList.remove("oculto");
+        document.getElementById("usuario-actual").textContent = user.email;
+        cargarSolicitudes();
+      }
+
+      async function crearSolicitud() {
+        const titulo = val("titulo");
+        const monto = Number(val("monto"));
+        if (!titulo || !monto)
+          return msg("m2", "Completa título y monto.", false);
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("solicitudes")
+          .insert({ titulo, monto, usuario_email: user.email });
+
+        if (error)
+          return msg("m2", "Error al guardar: " + error.message, false);
+
+        msg("m2", "Solicitud guardada.", true);
+        document.getElementById("titulo").value = "";
+        document.getElementById("monto").value = "";
+        cargarSolicitudes();
+      }
+
+      async function cargarSolicitudes() {
+        const { data, error } = await supabase
+          .from("solicitudes")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) return;
+        const lista = document.getElementById("lista-solicitudes");
+        lista.innerHTML = data
+          .map(
+            (s) =>
+              `<li><strong>${s.titulo}</strong> — $${s.monto} (${s.usuario_email || "sin correo"})</li>`,
+          )
+          .join("");
+      }
+
+      async function salir() {
+        await supabase.auth.signOut();
+        document.getElementById("vista-app").classList.add("oculto");
+        document.getElementById("vista-login").classList.remove("oculto");
+      }
+
+      (async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) mostrarApp();
+      })();
+    </script>
   </body>
 </html>
