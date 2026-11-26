@@ -55,12 +55,31 @@
       }
 
       async function registrar() {
+        const email = val("email");
+        const password = val("pass");
+
+        if (!email || !password) {
+          return msg(
+            "m1",
+            "Escribe un correo y una contraseña (mín. 6 caracteres).",
+            false,
+          );
+        }
+
         const { error } = await supabase.auth.signUp({
-          email: val("email"),
-          password: val("pass"),
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
         });
+
         if (error) return msg("m1", "Error: " + error.message, false);
-        msg("m1", "Cuenta creada. Ya puedes iniciar sesión.", true);
+        msg(
+          "m1",
+          "Revisa tu correo y haz clic en el enlace de confirmación para activar tu cuenta.",
+          true,
+        );
       }
 
       async function entrar() {
@@ -68,7 +87,18 @@
           email: val("email"),
           password: val("pass"),
         });
-        if (error) return msg("m1", "Credenciales incorrectas", false);
+
+        if (error) {
+          if (error.message.includes("Email not confirmed")) {
+            return msg(
+              "m1",
+              "Primero debes confirmar tu correo desde el enlace que te enviamos.",
+              false,
+            );
+          }
+          return msg("m1", "Credenciales incorrectas.", false);
+        }
+
         msg("m1", "", true);
         mostrarApp();
       }
